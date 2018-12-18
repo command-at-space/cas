@@ -1,0 +1,17 @@
+# Ignore these directories
+_aux/
+logs/
+tmp/
+
+# Ignore these files
+.env
+.DS_Store
+_private.js
+_private.json
+a_private.go
+
+
+# binaries
+cas
+cas-*
+
