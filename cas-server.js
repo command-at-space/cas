@@ -79,6 +79,9 @@ app.listen(c.app.port, function () {
 
 function initApp() {
   db.testDBConnection();
+  setInterval(function () {
+    db.keepConnectionAlive();
+  }, 5000);
 }
 
 module.exports = {};

@@ -27,6 +27,19 @@ function testDBConnection() {
   });
 }
 
+function keepConnectionAlive() {
+  let sql = 'SELECT 1';
+  sql = mysql.format(sql);
+  con.query(sql, function (err, rows) {
+    if (err) {
+      console.error('Error Keeping connection Alive =>', err);
+      // throw err
+    } else {
+      //console.log('Keep connection Alive =>', rows);
+    }
+  });
+}
+
 // AUTH METHODS
 
 function insertNewAccount(u) {
@@ -91,6 +104,7 @@ function loadAllSessions() {
 
 module.exports = {
   testDBConnection: testDBConnection,
+  keepConnectionAlive: keepConnectionAlive,
   insertNewAccount: insertNewAccount,
   getAccount: getAccount,
   saveSession: saveSession,
