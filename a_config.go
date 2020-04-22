@@ -1,0 +1,20 @@
+/* */
+
+package main
+
+func getGlobalConfigJSON() (configjson []byte) {
+
+	configjson = []byte(`
+	{
+		"config": {
+			"mode": "production",
+			"host": "localhost",
+			"port": 7000,
+			"errorsLogFile": "logs/errors.log",
+			"infoLogFile":"logs/info.log"
+		}
+	}
+	`)
+
+	return
+}
