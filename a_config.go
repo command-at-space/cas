@@ -9,7 +9,7 @@ func getGlobalConfigJSON() (configjson []byte) {
 		"config": {
 			"mode": "production",
 			"host": "localhost",
-			"port": 7000,
+			"port": 6900,
 			"errorsLogFile": "logs/errors.log",
 			"infoLogFile":"logs/info.log"
 		}

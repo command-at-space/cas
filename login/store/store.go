@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 
+	// mysql driver
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -28,7 +29,7 @@ func NewDB(mode string) (*DB, error) {
 	var c configDB
 	loadConfigJSON(&c)
 	setDBConnConfig(mode, &c)
-	connPath := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s",
+	connPath := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
 		c.User,
 		c.Password,
 		c.Host,

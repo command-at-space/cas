@@ -1,6 +1,9 @@
+/* */
+
 package login
 
 import (
+	util "casServer/utils"
 	"fmt"
 	"log"
 	"net/http"
@@ -8,19 +11,17 @@ import (
 	"time"
 )
 
-//type session struct{}
-
 // IsLogged ...
 func IsLogged(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" && r.URL.String() != "/secret" {
-			badRequest(w, r)
+			util.BadRequest(w, r)
 			return
 		}
 		r.ParseForm()
 		cookie, err := r.Cookie(cookieName)
 		if err != nil {
-			log.Print("No cookie")
+			//log.Print("No cookie")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -40,7 +41,7 @@ func IsLogged(next http.HandlerFunc) http.HandlerFunc {
 func IsNotLogged(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "POST" {
-			badRequest(w, r)
+			util.BadRequest(w, r)
 			return
 		}
 		r.ParseForm()
@@ -57,11 +58,10 @@ func IsNotLogged(next http.HandlerFunc) http.HandlerFunc {
 		value, ok := ActiveUsers[user]
 		if ok && value == sessionID {
 			if user == username {
-				e := new(requestError)
-				e.Error = fmt.Errorf(`%s is already logged`, user)
+				e := new(util.RequestError)
 				e.Message = fmt.Sprintf(`User %s is already logged`, user)
 				e.StatusCode = 401
-				sendErrorToClient(w, e)
+				util.SendErrorToClient(w, e)
 				return
 			}
 		}
@@ -82,7 +82,7 @@ func setSessionCookie(w http.ResponseWriter, username string) string {
 		Value:    sessionID,
 		Domain:   checkModeForCookieDomain(),
 		Path:     "/",
-		HttpOnly: checkModeForCookieHttpOnly(),
+		HttpOnly: checkModeForCookieHTTPOnly(),
 		Expires:  expire,
 	}
 	http.SetCookie(w, cookie)

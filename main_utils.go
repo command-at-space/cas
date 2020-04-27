@@ -4,11 +4,9 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 )
 
@@ -18,7 +16,7 @@ func checkFlags() {
 	switch {
 	case *versionFlag:
 		fmt.Printf("Version:\t: %s\n", version)
-		fmt.Printf("Date   :\t: %s\n", when)
+		fmt.Printf("Date   :\t: %s\n", releaseDate)
 		os.Exit(0)
 	}
 }
@@ -30,16 +28,12 @@ func loadConfigJSON(a *app) {
 	}
 }
 
-func sendErrorToClient(w http.ResponseWriter, re *requestError) {
-	w.WriteHeader(re.StatusCode)
-	w.Header().Set("Content-Type", "application/json")
-	var dataJSON = []byte(`{}`)
-	dataJSON, err := json.MarshalIndent(re, "", " ")
+func createCustomInfoLogFile(f string) {
+	infoLog, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		log.Printf("ERROR Marshaling %s\n", err)
-		w.Write([]byte(`{}`))
+		log.Fatalf("ERROR opening Info log file %s\n", err)
 	}
-	w.Write(dataJSON)
+	iLog = log.New(infoLog, "INFO :\t", log.Ldate|log.Ltime)
 }
 
 func createCustomErrorLogFile(f string) *os.File {
@@ -49,28 +43,4 @@ func createCustomErrorLogFile(f string) *os.File {
 	}
 	log.SetOutput(mylog)
 	return mylog
-}
-
-func createCustomInfoLogFile(a *app) {
-	var f = a.Conf.InfoLogFile
-	infoLog, err := os.OpenFile(f, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
-	if err != nil {
-		log.Fatalf("ERROR opening Info log file %s\n", err)
-	}
-	a.iLog = log.New(infoLog, "INFO :\t", log.Ldate|log.Ltime)
-}
-
-func badRequest(w http.ResponseWriter, r *http.Request) {
-	re := &requestError{
-		Error:      errors.New("Unexistent Endpoint " + (r.URL).String()),
-		Message:    "Bad Request",
-		StatusCode: 400,
-	}
-	log.Println(re.Error)
-	sendErrorToClient(w, re)
-}
-
-func secret(w http.ResponseWriter, r *http.Request) {
-	//fmt.Println(`SECRET`)
-	w.Write([]byte("SECRET - LOGGED ZONE"))
 }
