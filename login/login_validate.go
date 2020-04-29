@@ -54,6 +54,18 @@ func validateNewUserData(u *store.User) (ok string) {
 	return ok
 }
 
+func validateNewAnonymousData(nick string) (ok string) {
+	nick = nick[4:len(nick)] // remove tmp_ prefix
+	ok = ""
+	if len(nick) < 4 || len(nick) > 8 {
+		ok += fmt.Sprintf("Name between 4-8 characters\n")
+	}
+	if !checkValidCharacters(nick) {
+		ok += fmt.Sprintf("Name only can contain numbers and letters\n")
+	}
+	return ok
+}
+
 func checkValidCharacters(str string) bool {
 	str = strings.ToLower(str)
 	for _, char := range str {

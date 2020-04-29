@@ -3,8 +3,8 @@
 package login
 
 import (
+	store "casServer/login/store"
 	util "casServer/utils"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -20,16 +20,19 @@ func IsLogged(next http.HandlerFunc) http.HandlerFunc {
 		}
 		r.ParseForm()
 		cookie, err := r.Cookie(cookieName)
-		if err != nil {
-			//log.Print("No cookie")
+		if err != nil { // No cookie
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
-		user := strings.Split(cookie.Value, ":")[0]
-		sessionID := strings.Split(cookie.Value, ":")[1]
-		value, ok := ActiveUsers[user]
-		if !ok || value != sessionID {
-			log.Printf("No Active User %s with session %s\n", user, sessionID)
+		username := strings.Split(cookie.Value, ":")[0]
+		usernameID := strings.ToLower(username)
+		s, err := loginDB.UserSession(usernameID)
+		if err != nil {
+			message := "We are experiencing problems... Please try again later"
+			http.Error(w, message, http.StatusInternalServerError)
+			return
+		}
+		if s.SessionID != cookie.Value {
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -46,47 +49,44 @@ func IsNotLogged(next http.HandlerFunc) http.HandlerFunc {
 		}
 		r.ParseForm()
 		cookie, err := r.Cookie(cookieName)
-		if err != nil {
-			//log.Print("No cookie")
+		if err != nil { // No cookie
 			next.ServeHTTP(w, r)
 			return
 		}
 		username := r.FormValue("user")
-		//fmt.Println("HAY COOKIE ---")
-		user := strings.Split(cookie.Value, ":")[0]
-		sessionID := strings.Split(cookie.Value, ":")[1]
-		value, ok := ActiveUsers[user]
-		if ok && value == sessionID {
-			if user == username {
-				e := new(util.RequestError)
-				e.Message = fmt.Sprintf(`User %s is already logged`, user)
-				e.StatusCode = 401
-				util.SendErrorToClient(w, e)
-				return
-			}
+		usernameID := strings.ToLower(username)
+		s, err := loginDB.UserSession(usernameID)
+		if err != nil {
+			message := "We are experiencing problems... Please try again later"
+			http.Error(w, message, http.StatusInternalServerError)
+			return
+		}
+		if s.SessionID == cookie.Value { // User already logged
+			message := "User is already logged"
+			http.Error(w, message, http.StatusConflict)
+			return
 		}
 		next.ServeHTTP(w, r)
 	}
 }
 
-func setSessionCookie(w http.ResponseWriter, username string) string {
+func setSessionCookie(w http.ResponseWriter, s *store.Session, nick string) {
 	token, err := generateRandomString(sessionLength)
 	if err != nil {
 		log.Print("Error Generating Random String")
 		token = time.Now().String()
 	}
-	sessionID := username + ":" + token
-	expire := time.Now().AddDate(0, 0, 1)
+	s.SessionID = nick + ":" + token
+	s.Expires = time.Now().AddDate(0, 0, 1)
 	cookie := &http.Cookie{
 		Name:     cookieName,
-		Value:    sessionID,
-		Domain:   checkModeForCookieDomain(),
+		Value:    s.SessionID,
+		Domain:   util.CheckModeForCookieDomain(),
 		Path:     "/",
-		HttpOnly: checkModeForCookieHTTPOnly(),
-		Expires:  expire,
+		HttpOnly: util.CheckModeForCookieHTTPOnly(),
+		Expires:  s.Expires,
 	}
 	http.SetCookie(w, cookie)
-	return cookie.Value
 }
 
 func deleteSessionCookie(w http.ResponseWriter) {

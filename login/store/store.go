@@ -4,7 +4,9 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"log"
 
 	// mysql driver
 	_ "github.com/go-sql-driver/mysql"
@@ -27,7 +29,10 @@ type DB struct {
 // NewDB ...
 func NewDB(mode string) (*DB, error) {
 	var c configDB
-	loadConfigJSON(&c)
+	err := json.Unmarshal(databaseConfigJSON(), &c)
+	if err != nil {
+		log.Fatal("Error parsing JSON config => \n", err)
+	}
 	setDBConnConfig(mode, &c)
 	connPath := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
 		c.User,
@@ -41,9 +46,9 @@ func NewDB(mode string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	/*err = db.Ping()
+	err = db.Ping()
 	if err != nil {
 		return nil, err
-	}*/
+	}
 	return &DB{db}, nil
 }

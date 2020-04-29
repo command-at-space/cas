@@ -3,7 +3,6 @@
 package main
 
 func getGlobalConfigJSON() (configjson []byte) {
-
 	configjson = []byte(`
 	{
 		"config": {
@@ -15,6 +14,5 @@ func getGlobalConfigJSON() (configjson []byte) {
 		}
 	}
 	`)
-
 	return
 }

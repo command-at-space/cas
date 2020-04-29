@@ -10,3 +10,6 @@ _data/
 a_private.go
 _private.json
 go.sum
+
+# Ignore binaries
+casServer

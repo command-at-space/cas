@@ -3,10 +3,12 @@
 package utils
 
 import (
-	"casServer/login/store"
+	store "casServer/login/store"
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 )
 
 // RequestError ...
@@ -54,4 +56,32 @@ func BadRequest(w http.ResponseWriter, r *http.Request) {
 		StatusCode: 404,
 	}
 	SendErrorToClient(w, re)
+}
+
+// CheckAppMode ...
+func CheckAppMode() (mode string) {
+	serverName, _ := os.Hostname()
+	serverName = strings.ToLower(serverName)
+	for _, value := range envsDev {
+		if value == serverName {
+			return "dev"
+		}
+	}
+	return "production"
+}
+
+// CheckModeForCookieDomain ...
+func CheckModeForCookieDomain() (domain string) {
+	if CheckAppMode() == "dev" {
+		return "localhost"
+	}
+	return domainNameForCookie
+}
+
+// CheckModeForCookieHTTPOnly ...
+func CheckModeForCookieHTTPOnly() (httpOnly bool) {
+	if CheckAppMode() == "dev" {
+		return false
+	}
+	return true
 }

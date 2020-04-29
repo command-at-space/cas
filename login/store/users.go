@@ -89,7 +89,7 @@ func (loginDB *DB) NewAccount(u *User) error {
 	stmt, err := loginDB.Prepare(query)
 	//fmt.Println(query)
 	if err != nil {
-		log.Printf("ERROR 3 DB inserting %s -> %s\n", u.Nick, err)
+		log.Printf("ERROR 3 DB USERS inserting %s -> %s\n", u.Nick, err)
 		return err
 	}
 	defer stmt.Close()
@@ -106,8 +106,8 @@ func (loginDB *DB) NewAccount(u *User) error {
 		u.LastSeen,
 		u.Online,
 	)
-	if err != nil { // for exampke duplicate entry user -> jolav and Jolav
-		log.Printf("ERROR 4 DB inserting %s -> %s\n", u.Nick, err)
+	if err != nil { // for example duplicate entry user -> jolav and Jolav
+		log.Printf("ERROR 4 DB USERS inserting %s -> %s\n", u.Nick, err)
 		return err
 	}
 	return nil

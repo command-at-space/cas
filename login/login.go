@@ -12,10 +12,17 @@ import (
 	"time"
 )
 
+const (
+	sessionLength int    = 50
+	bcryptCost    int    = 12
+	cookieName    string = "alphaCAS"
+	validChars    string = "abcdefghijklmnopqrstuvwxyz0123456789"
+)
+
 var loginDB *store.DB
 
 func init() {
-	db, err := store.NewDB(checkAppConfMode())
+	db, err := store.NewDB(util.CheckAppMode())
 	if err != nil {
 		log.Fatal("Error connecting DataBase => ", err)
 	}
@@ -51,9 +58,16 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		util.SendErrorToClient(w, e)
 		return
 	}
-	cookie := setSessionCookie(w, u.Nick)
-	sessionID := strings.Split(cookie, ":")[1]
-	ActiveUsers[u.Nick] = sessionID
+	s := store.NewSession()
+	s.NickID = u.NickID
+	setSessionCookie(w, s, u.Nick)
+	err = loginDB.SaveSession(s)
+	if err != nil {
+		e.Message = "We are experiencing problems... Please try again later"
+		e.StatusCode = 503
+		util.SendErrorToClient(w, e)
+		return
+	}
 	info := &util.ResponseInfo{
 		IsLogged: true,
 		User:     u,
@@ -63,10 +77,10 @@ func Login(w http.ResponseWriter, r *http.Request) {
 
 // Logout ...
 func Logout(w http.ResponseWriter, r *http.Request) {
+	e := new(util.RequestError)
 	r.ParseForm()
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
-		//log.Print("No cookie")
 		info := &util.ResponseInfo{
 			IsLogged: false,
 			User:     nil,
@@ -74,9 +88,16 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 		util.SendJSONToClient(w, info)
 		return
 	}
-	user := strings.Split(cookie.Value, ":")[0]
+	username := strings.Split(cookie.Value, ":")[0]
+	usernameID := strings.ToLower(username)
 	deleteSessionCookie(w)
-	delete(ActiveUsers, user)
+	err = loginDB.DeleteSession(usernameID)
+	if err != nil {
+		e.Message = "We are experiencing problems... Please try again later"
+		e.StatusCode = 503
+		util.SendErrorToClient(w, e)
+		return
+	}
 	info := &util.ResponseInfo{
 		IsLogged: false,
 		User:     nil,
@@ -86,6 +107,7 @@ func Logout(w http.ResponseWriter, r *http.Request) {
 
 // AutoLogin ...
 func AutoLogin(w http.ResponseWriter, r *http.Request) {
+	e := new(util.RequestError)
 	if r.Method != "POST" {
 		util.BadRequest(w, r)
 		return
@@ -101,10 +123,16 @@ func AutoLogin(w http.ResponseWriter, r *http.Request) {
 		util.SendJSONToClient(w, info)
 		return
 	}
-	user := strings.Split(cookie.Value, ":")[0]
-	sessionID := strings.Split(cookie.Value, ":")[1]
-	value, ok := ActiveUsers[user]
-	if !ok || value != sessionID {
+	username := strings.Split(cookie.Value, ":")[0]
+	usernameID := strings.ToLower(username)
+	s, err := loginDB.UserSession(usernameID)
+	if err != nil {
+		e.Message = "We are experiencing problems... Please try again later"
+		e.StatusCode = 500
+		util.SendErrorToClient(w, e)
+		return
+	}
+	if s.SessionID != cookie.Value {
 		info := &util.ResponseInfo{
 			IsLogged: false,
 			User:     nil,
@@ -112,11 +140,8 @@ func AutoLogin(w http.ResponseWriter, r *http.Request) {
 		util.SendJSONToClient(w, info)
 		return
 	}
-	//loginDB.saveSession(u.name, sessionID)
-	//ActiveUsers[user] = sessionID
 	u := store.NewUser()
-	u.Nick = user
-	u.PassHashed = sessionID
+	u.Nick = username
 	info := &util.ResponseInfo{
 		IsLogged: true,
 		User:     u,
