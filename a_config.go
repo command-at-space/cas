@@ -10,7 +10,8 @@ func getGlobalConfigJSON() (configjson []byte) {
 			"host": "localhost",
 			"port": 6900,
 			"errorsLogFile": "logs/errors.log",
-			"infoLogFile":"logs/info.log"
+			"infoLogFile":"logs/info.log",
+			"chatLogFile":"logs/chat.log"
 		}
 	}
 	`)

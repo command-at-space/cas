@@ -11,11 +11,13 @@ import (
 	"os"
 	"time"
 
+	"casServer/chat"
 	login "casServer/login"
+	online "casServer/online"
 	util "casServer/utils"
 )
 
-var version = "v0.0.6"
+var version = "v0.0.7"
 var releaseDate = ""
 var iLog *log.Logger
 
@@ -26,6 +28,7 @@ type app struct {
 		Port          int    `json:"port"`
 		ErrorsLogFile string `json:"errorsLogFile"`
 		InfoLogFile   string `json:"infoLogFile"`
+		ChatLogFile   string `json:"chatLogFile"`
 	} `json:"config"`
 }
 
@@ -47,8 +50,12 @@ func main() {
 	defer mylog.Close()
 
 	// players Online
-	pj := login.NewPlayersOnline()
-	//showList(pj)
+	pjs := online.NewPlayersOnline()
+	//showList(pjs)
+
+	// chat
+	ch := chat.NewChat(a.Conf.ChatLogFile)
+	go ch.BroadcastMessages()
 
 	// Server
 	http.DefaultClient.Timeout = 5 * time.Second
@@ -59,15 +66,12 @@ func main() {
 	mux.HandleFunc("/auth/signup", login.IsNotLogged(login.SignUp))
 	mux.HandleFunc("/auth/logout", login.IsLogged(login.Logout))
 
-	mux.HandleFunc("/secret", login.IsLogged(
-		func(w http.ResponseWriter, r *http.Request) {
-			secret(w, r, pj)
-		},
-	))
+	mux.HandleFunc("/online/join", login.IsLogged(pjs.JoinGame))
+	mux.HandleFunc("/online/anonymous", login.IsNotLogged(pjs.JoinAnonymous))
 
-	mux.HandleFunc("/online/join", login.IsLogged(pj.JoinGame))
-	mux.HandleFunc("/online/anonymous", login.IsNotLogged(pj.JoinAnonymous))
+	mux.HandleFunc("/chat/msg", pjs.IsOnline(ch.HandleChat))
 
+	mux.HandleFunc("/secret", login.IsLogged(secret))
 	mux.HandleFunc("/", util.BadRequest)
 
 	server := http.Server{
@@ -81,26 +85,6 @@ func main() {
 	server.ListenAndServe()
 }
 
-func secret(w http.ResponseWriter, r *http.Request, pj *login.OnlinePJs) {
+func secret(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("LOGGED ZONE"))
-}
-
-func showList(pj *login.OnlinePJs) {
-	ticker := time.NewTicker(5 * time.Second)
-	quit := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				for nick, _ := range pj.Online {
-					//fmt.Printf("%s\n", nick)
-					fmt.Printf("%s ", nick)
-				}
-				fmt.Println("")
-			case <-quit:
-				ticker.Stop()
-				return
-			}
-		}
-	}()
 }

@@ -23,6 +23,12 @@ type ResponseInfo struct {
 	User     *store.User `json:"profile"`
 }
 
+// ResponseAnonymous ...
+type ResponseAnonymous struct {
+	IsLogged bool   `json:"isLogged"`
+	Nick     string `json:"profile"`
+}
+
 // SendErrorToClient ...
 func SendErrorToClient(w http.ResponseWriter, re *RequestError) {
 	w.WriteHeader(re.StatusCode)
@@ -82,6 +88,21 @@ func CheckModeForCookieDomain() (domain string) {
 func CheckModeForCookieHTTPOnly() (httpOnly bool) {
 	if CheckAppMode() == "dev" {
 		return false
+	}
+	return true
+}
+
+const (
+	validChars string = "abcdefghijklmnopqrstuvwxyz0123456789"
+)
+
+// CheckValidCharacters ...
+func CheckValidCharacters(str string) bool {
+	str = strings.ToLower(str)
+	for _, char := range str {
+		if !strings.Contains(validChars, string(char)) {
+			return false
+		}
 	}
 	return true
 }

@@ -3,11 +3,13 @@
 package main
 
 import (
+	online "casServer/online"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"os"
+	"time"
 )
 
 func checkFlags() {
@@ -43,4 +45,28 @@ func createCustomErrorLogFile(f string) *os.File {
 	}
 	log.SetOutput(mylog)
 	return mylog
+}
+
+func showList(pjs *online.PJs) {
+	for nick, _ := range pjs.Online {
+		//fmt.Printf("%s\n", nick)
+		fmt.Printf("%s ", nick)
+	}
+	fmt.Println("")
+}
+
+func showListInterval(pjs *online.PJs) {
+	ticker := time.NewTicker(5 * time.Second)
+	quit := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-ticker.C:
+				showList(pjs)
+			case <-quit:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
 }

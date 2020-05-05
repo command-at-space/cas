@@ -19,7 +19,7 @@ func IsLogged(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		r.ParseForm()
-		cookie, err := r.Cookie(cookieName)
+		cookie, err := r.Cookie(CookieName)
 		if err != nil { // No cookie
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
@@ -48,7 +48,7 @@ func IsNotLogged(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		r.ParseForm()
-		cookie, err := r.Cookie(cookieName)
+		cookie, err := r.Cookie(CookieName)
 		if err != nil { // No cookie
 			next.ServeHTTP(w, r)
 			return
@@ -71,7 +71,7 @@ func IsNotLogged(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func setSessionCookie(w http.ResponseWriter, s *store.Session, nick string) {
-	token, err := generateRandomString(sessionLength)
+	token, err := GenerateRandomString(SessionLength)
 	if err != nil {
 		log.Print("Error Generating Random String")
 		token = time.Now().String()
@@ -79,7 +79,7 @@ func setSessionCookie(w http.ResponseWriter, s *store.Session, nick string) {
 	s.SessionID = nick + ":" + token
 	s.Expires = time.Now().AddDate(0, 0, 1)
 	cookie := &http.Cookie{
-		Name:     cookieName,
+		Name:     CookieName,
 		Value:    s.SessionID,
 		Domain:   util.CheckModeForCookieDomain(),
 		Path:     "/",
@@ -91,7 +91,7 @@ func setSessionCookie(w http.ResponseWriter, s *store.Session, nick string) {
 
 func deleteSessionCookie(w http.ResponseWriter) {
 	cookie := &http.Cookie{
-		Name:   cookieName,
+		Name:   CookieName,
 		Value:  "",
 		Path:   "/",
 		MaxAge: -1,

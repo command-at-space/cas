@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"net/http"
 	"regexp"
-	"strings"
 
 	store "casServer/login/store"
+	util "casServer/utils"
 )
 
 func validateNewUserData(u *store.User) (ok string) {
@@ -16,7 +16,7 @@ func validateNewUserData(u *store.User) (ok string) {
 	if len(u.NickID) < 4 || len(u.NickID) > 16 {
 		ok += fmt.Sprintf("Name between 4-16 characters\n")
 	}
-	if !checkValidCharacters(u.NickID) {
+	if !util.CheckValidCharacters(u.NickID) {
 		ok += fmt.Sprintf("Name only can contain numbers and letters\n")
 	}
 	if len(u.PassHashed) < 8 || len(u.PassHashed) > 20 {
@@ -60,20 +60,10 @@ func validateNewAnonymousData(nick string) (ok string) {
 	if len(nick) < 4 || len(nick) > 8 {
 		ok += fmt.Sprintf("Name between 4-8 characters\n")
 	}
-	if !checkValidCharacters(nick) {
+	if !util.CheckValidCharacters(nick) {
 		ok += fmt.Sprintf("Name only can contain numbers and letters\n")
 	}
 	return ok
-}
-
-func checkValidCharacters(str string) bool {
-	str = strings.ToLower(str)
-	for _, char := range str {
-		if !strings.Contains(validChars, string(char)) {
-			return false
-		}
-	}
-	return true
 }
 
 func doesReallyLogoURLExists(str string) bool {

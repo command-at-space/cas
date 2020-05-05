@@ -13,10 +13,11 @@ import (
 )
 
 const (
-	sessionLength int    = 50
-	bcryptCost    int    = 12
-	cookieName    string = "alphaCAS"
-	validChars    string = "abcdefghijklmnopqrstuvwxyz0123456789"
+	// SessionLength ...
+	SessionLength int = 50
+	bcryptCost    int = 12
+	// CookieName ...
+	CookieName string = "alphaCAS"
 )
 
 var loginDB *store.DB
@@ -79,7 +80,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 func Logout(w http.ResponseWriter, r *http.Request) {
 	e := new(util.RequestError)
 	r.ParseForm()
-	cookie, err := r.Cookie(cookieName)
+	cookie, err := r.Cookie(CookieName)
 	if err != nil {
 		info := &util.ResponseInfo{
 			IsLogged: false,
@@ -113,7 +114,7 @@ func AutoLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	r.ParseForm()
-	cookie, err := r.Cookie(cookieName)
+	cookie, err := r.Cookie(CookieName)
 	if err != nil {
 		//log.Print("No cookie")
 		info := &util.ResponseInfo{

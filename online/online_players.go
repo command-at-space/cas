@@ -1,8 +1,9 @@
 /* */
 
-package login
+package online
 
 import (
+	login "casServer/login"
 	store "casServer/login/store"
 	util "casServer/utils"
 	"fmt"
@@ -12,48 +13,54 @@ import (
 	"time"
 )
 
-// OnlinePJs ...
-type OnlinePJs struct {
+// PJs ...
+type PJs struct {
 	Online map[string]string
 }
 
+// UserAnonymous ...
+/*type UserAnonymous struct {
+	Nick string `json:"nick"`
+}*/
+
 // NewPlayersOnline ...
-func NewPlayersOnline() *OnlinePJs {
-	var pj OnlinePJs
-	pj.Online = make(map[string]string)
-	pj.connect("CaS", "adminGameBot")
-	return &pj
+func NewPlayersOnline() *PJs {
+	var pjs PJs
+	pjs.Online = make(map[string]string)
+	pjs.connect("CaS", "adminGameBot")
+	return &pjs
 }
 
-func (pj *OnlinePJs) connect(nick, cookie string) {
-	pj.Online[nick] = cookie
+func (pjs *PJs) connect(nick, cookie string) {
+	pjs.Online[nick] = cookie
 }
 
-func (pj *OnlinePJs) disconnect(nick string) {
-	if pj.isConnected(nick) {
-		delete(pj.Online, nick)
+func (pjs *PJs) disconnect(nick string) {
+	if pjs.IsConnected(nick) {
+		delete(pjs.Online, nick)
 	}
 }
 
-func (pj *OnlinePJs) isConnected(nick string) bool {
-	_, ok := pj.Online[nick]
+// IsConnected ...
+func (pjs *PJs) IsConnected(nick string) bool {
+	_, ok := pjs.Online[nick]
 	if ok {
 		return true
 	}
 	return false
 }
 
-func (pj *OnlinePJs) listAll() {
-	for nick, _ := range pj.Online {
+func (pjs *PJs) listAll() {
+	for nick, _ := range pjs.Online {
 		fmt.Printf("%s\n", nick)
 		//fmt.Printf("%s:%s\n", nick, cookie)
 	}
 }
 
 // JoinGame ...
-func (pj *OnlinePJs) JoinGame(w http.ResponseWriter, r *http.Request) {
+func (pjs *PJs) JoinGame(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
-	cookie, err := r.Cookie(cookieName)
+	cookie, err := r.Cookie(login.CookieName)
 	if err != nil {
 		info := &util.ResponseInfo{
 			IsLogged: false,
@@ -64,7 +71,7 @@ func (pj *OnlinePJs) JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 	username := strings.Split(cookie.Value, ":")[0]
 	value := strings.Split(cookie.Value, ":")[1]
-	pj.connect(username, value)
+	pjs.connect(username, value)
 	u := store.NewUser()
 	u.Nick = username
 	info := &util.ResponseInfo{
@@ -75,7 +82,7 @@ func (pj *OnlinePJs) JoinGame(w http.ResponseWriter, r *http.Request) {
 }
 
 // JoinAnonymous ...
-func (pj *OnlinePJs) JoinAnonymous(w http.ResponseWriter, r *http.Request) {
+func (pjs *PJs) JoinAnonymous(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	nick := strings.ToLower(r.FormValue("user"))
 	u := store.NewUser()
@@ -89,7 +96,7 @@ func (pj *OnlinePJs) JoinAnonymous(w http.ResponseWriter, r *http.Request) {
 		util.SendErrorToClient(w, e)
 		return
 	}
-	token, err := generateRandomString(sessionLength)
+	token, err := login.GenerateRandomString(login.SessionLength)
 	if err != nil {
 		log.Print("Error Generating Random String")
 		token = time.Now().String()
@@ -97,7 +104,7 @@ func (pj *OnlinePJs) JoinAnonymous(w http.ResponseWriter, r *http.Request) {
 	sessionID := nick + ":" + token
 	expires := time.Now().AddDate(0, 0, 1)
 	cookie := &http.Cookie{
-		Name:     cookieName,
+		Name:     login.CookieName,
 		Value:    sessionID,
 		Domain:   util.CheckModeForCookieDomain(), //"localhost",
 		Path:     "/",
@@ -107,10 +114,28 @@ func (pj *OnlinePJs) JoinAnonymous(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, cookie)
 	username := strings.Split(cookie.Value, ":")[0]
 	value := strings.Split(cookie.Value, ":")[1]
-	pj.connect(username, value)
+	pjs.connect(username, value)
 	info := &util.ResponseInfo{
 		IsLogged: true,
 		User:     u,
 	}
 	util.SendJSONToClient(w, info)
+}
+
+// IsOnline ...
+func (pjs *PJs) IsOnline(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		cookie, err := r.Cookie(login.CookieName)
+		if err != nil { // No cookie
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		username := strings.Split(cookie.Value, ":")[0]
+		if pjs.IsConnected(username) {
+			next.ServeHTTP(w, r)
+			return
+		}
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+	}
 }
